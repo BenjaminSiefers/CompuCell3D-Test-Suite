@@ -32,7 +32,7 @@ elif platform == 'win32':
         #Gets filename
         head, tail = os.path.split(path)
         #Creates a file to send the output
-        f = open(output + tail[0:-5] + ".txt", "w")
+        f = open("C:/CC3DWorkspace/Shell_Output" + tail[0:-5] + ".txt", "w")
         try:
             f.writelines(subprocess.check_output("C:/CompuCell3D-64bit/runScript.bat -i " + path))
         except subprocess.CalledProcessError as e:
