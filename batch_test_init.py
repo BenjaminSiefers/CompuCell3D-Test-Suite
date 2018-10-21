@@ -157,21 +157,21 @@ demos = [os.path.join(dp, file) for dp, dn, filenames in os.walk(InputDirectory)
 output = "Demos/Testing/TestResult/"
 #Check for OS
 if platform.system() == "Linux":
-    for _path in demos:
+    for path in demos:
         #Gets filename
         head, tail = os.path.split(path)
         ext = ".sh"
         setup = "./"
         CreateCommand()
 elif platform.system() == "Windows":
-    for _path in demos:
+    for path in demos:
         #Gets filename
         head, tail = os.path.split(path)
         ext = ".bat"
         setup = "C:/CompuCell3D-64bit/"
         CreateCommand()
 elif platform.system() == "Darwin":
-    for _path in demos:
+    for path in demos:
         #Gets filename
         head, tail = os.path.split(path)
         ext = ".command"
