@@ -13,67 +13,95 @@ import os
 import time
 import platform
 import sys
-time = time.strftime("%Y-%m-%d_%H-%M")
-testFile = open("TestResult/" + "TestResult" + time + ".txt", "w")
-testFile.close()
+#get the current time
+timeStart = time.strftime("%Y-%m-%d_%H-%M")
+#create a folder to store TestResults
+if(not os.path.isdir("TestResult")): os.makedirs("TestResult")
+#create a file to store the test, system, bit type, and time
+file = open("TestResult/" + "TestResult" + timeStart + ".txt", "w")
+file.write(platform.system() + " version: " + platform.version() + "  " + platform.machine() + "\n")
+if(os.path.isfile("../../../CompuCell3D-64bit website.url")):
+    file.write("CompuCell3D-64bit\n")
+elif(os.path.isfile("../../../CompuCell3D-32bit website.url")):
+    file.write("CompuCell3D-32bit\n")
+file.close()
 
-print("Proccessing..." + "   This could take a VERY long time...")
+#creates a place to store used demos so that multiple instances of this program be ran
+#also gets the initially used time if its been created already
+if(not os.path.isfile("ProcessedDemos.txt")):
+    file = open("ProcessedDemos.txt", "w")
+    file.write(timeStart + "\n")
+    file.close()
+else:
+    file = open("ProcessedDemos.txt", "r")
+    timeStart = file.readline()[0:-1]
+    file.close()
+
+print("Proccessing...   This could take a VERY long time...")
 #Sends the Command to Shell	and writes a clean output filels
-def CallInShell(arguments):
+def callInShell(arguments):
     command = ""
     for _arg in arguments:
         command += _arg + " "
     if platform != "win32":
-        f = open(output + tail[0:-5]  + ".txt", "w")
-        FileLocation = output
+        fileLocation = output
         try:
-            print(command)
-            f.writelines(os.popen(command, "r"))
+            commandOutput = os.popen(command, "r")
+            f = open(output + tail[0:-5] + ".txt", "w")
+            f.writelines(commandOutput)
+            f.close()
         except os.error as e:
             print("#Error code:", e.returncode, e.output)
+            f = open(output + tail[0:-5] + ".txt", "w")
             f.writelines("Error Code:" + "\n" + str(e.returncode) + "\n" + e.output)
+            f.close()
     else:
-        FileLocation = "Demos/Testing/TestResult/"  
-        f = open(FileLocation + tail[0:-5] + ".txt", "w")
+        fileLocation = "Demos/Testing/TestResult/"
         try:
-            print(command)
-            f.writelines(os.popen(command, "r"))
+            commandOutput = os.popen(command, "r")
+            f = open(output + tail[0:-5] + ".txt", "w")
+            f.writelines(commandOutput)
+            f.close()
         except os.error as e:
             print("#Error code:", e.returncode, e.output)
+            f = open(output + tail[0:-5] + ".txt", "w")
             f.writelines("#Error Code:" + "\n" + str(e.returncode) + "\n" + e.output)
+            f.close()
     noError = False
-    f.close()
+
     #reopens it to give it a date and clean the output
-    with open(FileLocation + tail[0:-5] + ".txt") as infile, open(FileLocation + tail[0:-5] +  "temp" + ".txt", "w") as outfile:
+    with open(fileLocation + tail[0:-5] + ".txt", "r") as infile, open(fileLocation + tail[0:-5] + "temp" + ".txt", "w") as outfile:
         buffer = []
-        PastLine = False
+        pastLine = False
+        outfile.write(path + "\n")
         for line in infile:
-            if not line.strip():
-                buffer.append(line)
-                continue
             Strip = line.strip()
-            if Strip == "------------------PERFORMANCE REPORT:----------------------" or Strip == "#Error code:" or PastLine:
-                PastLine = True
+            if Strip == "------------------PERFORMANCE REPORT:----------------------" or Strip == "#Error code:" or pastLine:
+                pastLine = True
                 outfile.write("".join(buffer))
                 buffer = []
                 outfile.write(line)
-    if(not PastLine):
-        tempFileLocation = os.path.join(FileLocation + tail[0:-5] +  "temp" + ".txt")
+    if(not pastLine):
+        fileName = fileLocation + tail[0:-5] + ".txt"
     else:
-        tempFileLocation = os.path.join(FileLocation + tail[0:-5] +  "temp" + ".txt")
-    
-    with open("Demos/Testing/TestResult/" + "TestResult" + time + ".txt", "a") as TestResult:
-        with open(tempFileLocation, "r") as tempFile:
-            TestResult.write(platform.system() + " version: " + platform.version() + "  " +  platform.machine())
-            for line in tempFile:
-                TestResult.write(line)
-    TestResult.close()
+        fileName = fileLocation + tail[0:-5] + "temp" + ".txt"
+
+    with open(output + "TestResult" + timeStart + ".txt", "a") as testResult:
+        with open(fileName) as file:
+            for line in file:
+                testResult.write(line)
+            testResult.write("\n\n")
+    testResult.close()
+    file.close()
+    os.remove(fileLocation + tail[0:-5] + ".txt")
+    os.remove(fileLocation + tail[0:-5] + "temp" + ".txt")
+
 #Creates a command to send the CallinShell function
-def CreateCommand():
+def createCommand():
     if(player):
         arguments = [setup + "compucell3d" + ext, "--exitWhenDone"]
     else:
-        arguments = [setup + "runScript" + ext ]
+        arguments = [setup + "runScript" + ext]
     
     if(customScreenshot):
         arguments.append("-s")
@@ -85,22 +113,24 @@ def CreateCommand():
         arguments.append(frequency)
     for _arg in args:
         arguments.append(_arg)   
-    CallInShell(arguments)
+    callInShell(arguments)
 
 
-
+#move to the main directory
 os.chdir("../../")
-if not os.path.isdir("Demos/Testing"): os.makedirs("Demos/Testing")
+
 #defaults to not use the player
 player = False
-UniqueOutput = False
+uniqueOuput = False
 customScreenshot = False
 customFrequency = False
 customCoreName = False
+
 #assign indicated args to a list
 args = sys.argv
 del args[0]
-InputDirectory = "Demos"
+inputDirectory = "Demos"
+
 #help command args for this file
 for _arg in args:
     if _arg == "-h" or _arg == "--help":
@@ -120,7 +150,7 @@ for _arg in args:
         exit()
     #takes a directory as opposed to a file location
     elif _arg == "-i":
-        InputDirectory = args[args.index("-i") + 1]
+        inputDirectory = args[args.index("-i") + 1]
         #delete their locations for convenience later
         del args[args.index("-i") + 1]
         del args[args.index("-i")]
@@ -152,28 +182,50 @@ for _arg in args:
         print("Use the --help command to see a list of commands")
 
 #Collects all .cc3d files                                      
-demos = [os.path.join(dp, file) for dp, dn, filenames in os.walk(InputDirectory) for file in filenames if os.path.splitext(file)[1] == ".cc3d"]
+demos = [os.path.join(dp, file) for dp, dn, filenames in os.walk(inputDirectory) for file in filenames if os.path.splitext(file)[1] == ".cc3d"]
+
 #Checks if output director exits
 output = "Demos/Testing/TestResult/"
+
+
+#writes the used to demos to a file
+def storeProcessedDemos(demoPath):
+    with open("Demos/Testing/ProcessedDemos.txt", 'a') as processedDemos:
+        processedDemos.writelines(demoPath + "\n")
+    processedDemos.close()
+
+def notInProcessedDemos(demoPath):
+    with open("Demos/Testing/ProcessedDemos.txt", 'r') as processedDemos:
+        for line in processedDemos:
+            if demoPath + "\n" == line:
+                return False
+        return True
+
 #Check for OS
 if platform.system() == "Linux":
     for path in demos:
         #Gets filename
-        head, tail = os.path.split(path)
-        ext = ".sh"
-        setup = "./"
-        CreateCommand()
+        if(notInProcessedDemos(path)):
+            storeProcessedDemos(path)
+            head, tail = os.path.split(path)
+            ext = ".sh"
+            setup = "./"
+            createCommand()
 elif platform.system() == "Windows":
     for path in demos:
         #Gets filename
-        head, tail = os.path.split(path)
-        ext = ".bat"
-        setup = "C:/CompuCell3D-64bit/"
-        CreateCommand()
+        if(notInProcessedDemos(path)):
+            storeProcessedDemos(path)
+            head, tail = os.path.split(path)
+            ext = ".bat"
+            setup = "C:/CompuCell3D-64bit/"
+            createCommand()
 elif platform.system() == "Darwin":
     for path in demos:
         #Gets filename
-        head, tail = os.path.split(path)
-        ext = ".command"
-        setup = "./"
-        CreateCommand()
+        if(notInProcessedDemos(path)):
+            storeProcessedDemos(path)
+            head, tail = os.path.split(path)
+            ext = ".command"
+            setup = "./"
+            createCommand()
