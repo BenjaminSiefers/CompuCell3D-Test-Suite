@@ -95,16 +95,29 @@ def callInShell(arguments):
         file.close()
     else:
         appendReturnCode(1)
-        if os.path.exists(testOutput + "UnexpectedResults" + timeStart + ".txt"):
+        if not os.path.exists(testOutput + "UnexpectedResults" + timeStart + ".txt"):
             file = open(testOutput + "UnexpectedResults" + timeStart + ".txt", "w")
+            file.write("These are demos that have given an error or have ran to completion and did not provide a performance report.\n")
             file.close()
-        with open(testOutput + "UnexpectedResults"+ timeStart + ".txt", "a") as testResult:
+        with open(testOutput + "UnexpectedResults" + timeStart + ".txt", "a") as testResult:
             with open(fileName) as file:
                 testResult.write("UNEXPECTED OUTPUT[DEMO #" + str(demoNumber) + "]: " + path + "\n")
                 testResult.write("OUTPUT: \n")
+                numberOfLinesInFile = 0
+                linesToBeRemoved = 0
+                contents = ""
                 for line in file:
-                    testResult.write(line)
-                testResult.write("\n\n\n")
+                    numberOfLinesInFile += 1
+                    contents += line
+                    pass
+                for line in contents.splitlines():
+                    linesToBeRemoved+=1
+                    if numberOfLinesInFile-20 <= linesToBeRemoved:
+                        testResult.write(line)
+                    pass
+                file.close()
+                testResult.write("\n\n")
+                testResult.close()
     os.remove(testOutput + tail[0:-5] + ".txt")
     os.remove(testOutput + tail[0:-5] + "temp" + ".txt")
 
@@ -190,7 +203,7 @@ documentation located in this directory for more details.
         del args[args.index("--player")]
         if "--exitWhenDone" in args:
             del args[args.index("--exitWhenDone")]
-            
+
     #sets up the tests not to send any output to the CC3DWorkspace
     elif args.count("--noOutput") == 1 and args[j] == "--noOutput":
         noOutput = True
