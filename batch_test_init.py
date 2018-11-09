@@ -108,7 +108,7 @@ def callInShell(arguments):
                 contents = ""
                 for line in file:
                     numberOfLinesInFile += 1
-                    contents += line
+                    contents += line + "\n"
                     pass
                 for line in contents.splitlines():
                     linesToBeRemoved+=1
