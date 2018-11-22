@@ -1,3 +1,4 @@
+
 """ 
 =================================
 Batch Testing Script
@@ -8,10 +9,8 @@ You can use the command line args "-o  [Path To Directory]" for directing output
 "-o" and "-i" are expected to be given directories
 For "-o" the program will send your test result as well as your normal CompuCell3D data to that directory.
 The default location for your  test output should be found in a folder in this directory.
-
 Ex.
 python batch_test_init.py -i [Input Directory] -o [Output Directory]
-
 Uses Demos directory
 python batch_test_init.py
 """
@@ -28,16 +27,23 @@ testOutput = "Demos/Testing/"
 #keeps track which demo the program is on
 demoNumber = 0
 
-#Int -> Void
-#appends the return code of the processed demo
-def appendReturnCode(returnCode):
+#Int Boolean -> Void
+#appends the return code and whether the demo produced a performance report, End Of Simulation or an error.
+def appendReturnCode(returnCode, hasPerformanceReport, hasEndOfSimulation, error):
+    if hasPerformanceReport:
+        reportTag = "PR"
+    elif hasEndOfSimulation:
+        reportTag = "EOS"
+    else:
+        reportTag = "ERROR"
     f = open(testOutput + "ProcessedDemos" + timeStart + ".txt", "r")
     contents = ""
     # looks for the current demo and inserts the return value
     for line in f:
-        contents += line
-        if line[:-1] == path:
-            contents += "Return Code: " + str(returnCode) + "\n"
+        if path in line:
+            contents += "[Return Code: " + str(returnCode) + "]  " + line[:-1] + "\t[" + reportTag + "] " + error + "\n"
+        else:
+            contents += line
     f.close()
 
     f = open(testOutput + "ProcessedDemos" + timeStart + ".txt", "w")
@@ -67,29 +73,39 @@ def callInShell(arguments):
     numberOfLinesInOutput = 0
     #creates a list that stores a performance report if there is one
     demoOutputToList = []
-    demoOutput = []
-    hasPerformanceReport = False
+    performanceReportExists = False
+    hasEndofSimulation = False
     #adds a path to it as an identifier
     demoOutputToList.append("SUCCESSFUL DEMO OUTPUT[DEMO #" + str(demoNumber) + "]: " + path + "\n")
     #doesn't add lines until it encounters a performance report
     for line in commandOutput:
         numberOfLinesInOutput += 1
-        if line[:-1] == "------------------PERFORMANCE REPORT:----------------------" or hasPerformanceReport:
-            hasPerformanceReport = True
+        if "------------------PERFORMANCE REPORT:----------------------" in line or performanceReportExists:
+            performanceReportExists = True
             demoOutputToList.append(line)
+        if "END OF SIMULATION" in line:
+            hasEndofSimulation = True
     # if the demo had a performance report
-    if hasPerformanceReport:
-        appendReturnCode(0)
+    if performanceReportExists:
+        appendReturnCode(0, True, False, "")
         #writes the performance report
         with open(testOutput + "SuccessfulResults" + timeStart + ".txt", "a") as f:
             for line in demoOutputToList:
                 f.write(line)
             f.write("\n\n")
         f.close()
-
+    elif hasEndofSimulation:
+        appendReturnCode(0, False, True, "")
+        with open(testOutput + "SuccessfulResults" + timeStart + ".txt", "a") as f:
+            f.write("--------------------------------------------------------------------------------------------------\n")
+            f.write("[DEMO #" + str(demoNumber) + "]: " + path + "\n")
+            f.write("The demo ran to completion but did not produce an performance report.\n")
+            f.write("--------------------------------------------------------------------------------------------------\n")
+            f.write("\n\n")
+        f.close()
     #if the demo did not have a performance report
     else:
-        appendReturnCode(1)
+
         if not os.path.exists(testOutput + "UnexpectedResults" + timeStart + ".txt"):
             f = open(testOutput + "UnexpectedResults" + timeStart + ".txt", "w")
 
@@ -109,15 +125,18 @@ def callInShell(arguments):
             testResult.write("--------------------------------------------------------------------------------------------------\n")
             testResult.write("OUTPUT: \n")
             #writes last 20 lines of the demo file
-            linesToBeRemoved = numberOfLinesInOutput - 20
+            linesToBeRemoved = numberOfLinesInOutput - 10
             for line in commandOutput:
                 if linesToBeRemoved <= 0:
                     testResult.write(line)
+                    linesToBeRemoved -= 1
+                    if linesToBeRemoved == -10:
+                        error = line
                 else:
                     linesToBeRemoved -= 1
             testResult.write("\n\n")
             testResult.close()
-
+        appendReturnCode(1, False, False, error)
     #if the user specifies no output ensure that if CC3D creates output to delete it
     if noOutput and os.path.isdir(outputDirectory + "/" + tail[0:-5] + timeStart):
         shutil.rmtree(outputDirectory + "/" + tail[0:-5] + timeStart)
@@ -169,7 +188,7 @@ def storeProcessedDemos(demoPath):
 def notInProcessedDemos(demoPath):
     with open(testOutput + "ProcessedDemos" + timeStart + ".txt", 'r') as processedDemos:
         for line in processedDemos:
-            if demoPath + "\n" == line:
+            if demoPath in line:
                 return False
         return True
 
@@ -183,7 +202,7 @@ args = sys.argv
 del args[0]
 inputDirectory = "Demos"
 outputDirectory = "../CC3DWorkspace"
-#allows the intitial instance run through
+#allows the initial instance run through
 if "__batchTestStartTime__" in args:
     time.sleep(2)
 #help command args for this file
@@ -217,7 +236,7 @@ Ex.
             userGivenCommands += arg + " "
         for instance in instances:
             createNewInstance(userGivenCommands)
-    #created for multi-threading to give new threads the correct start time
+    #created for multi-threading with the purpose to give new threads the correct start time
     elif "__batchTestStartTime__" in args:
         timeStart = args[args.index("__batchTestStartTime__") + 1]
         del args[args.index("__batchTestStartTime__") + 1]
